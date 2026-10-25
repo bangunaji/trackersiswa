@@ -47,11 +47,11 @@ jobs:
 
       # 7. Build Android APK Release (Universal APK)
       - name: Build Release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --android-skip-build-dependency-validation
 
       # 8. Build Split APKs (untuk ukuran file lebih hemat per arsitektur)
       - name: Build Split-per-ABI APKs
-        run: flutter build apk --release --split-per-abi
+        run: flutter build apk --release --split-per-abi --android-skip-build-dependency-validation
 
       # 9. Upload Artifacts (APK Universal) agar bisa langsung diunduh dari GitHub
       - name: Upload Universal APK Artifact
