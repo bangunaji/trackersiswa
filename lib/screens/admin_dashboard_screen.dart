@@ -6,6 +6,7 @@ import '../services/excel_service.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
 import 'master_students_screen.dart';
+import 'student_detail_logs_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -20,6 +21,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _isLoading = true;
   bool _isExporting = false;
 
+  String _viewMode = 'students'; // 'students' (Per Siswa) or 'all_logs' (Semua Riwayat)
   String _searchQuery = '';
   String _selectedFilter = 'Semua'; // 'Semua', 'Belajar', 'Sholat', 'Lainnya'
 
@@ -222,6 +224,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }).length;
     final totalSholat = _allLogs.where((l) => l.activityType.toLowerCase().contains('sholat')).length;
 
+    // Kelompokkan data per siswa untuk tampilan "Per Siswa"
+    final Map<String, List<ActivityLog>> studentsMap = {};
+    for (var l in _logs) {
+      studentsMap.putIfAbsent(l.nis, () => []).add(l);
+    }
+    final studentsList = studentsMap.entries.toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Column(
@@ -419,12 +428,110 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               const SizedBox(height: 18),
 
-              // DAFTAR LOG AKTIVITAS
+              // TOGGLE TAMPILAN: PER SISWA vs SEMUA LOG
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => setState(() => _viewMode = 'students'),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          decoration: BoxDecoration(
+                            color: _viewMode == 'students' ? Colors.white : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: _viewMode == 'students'
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.people_alt_rounded,
+                                size: 16,
+                                color: _viewMode == 'students' ? AppTheme.primaryColor : AppTheme.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Per Siswa (${studentsList.length})',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: _viewMode == 'students' ? AppTheme.primaryColor : AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => setState(() => _viewMode = 'all_logs'),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          decoration: BoxDecoration(
+                            color: _viewMode == 'all_logs' ? Colors.white : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: _viewMode == 'all_logs'
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.format_list_bulleted_rounded,
+                                size: 16,
+                                color: _viewMode == 'all_logs' ? AppTheme.primaryColor : AppTheme.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Semua Log (${_logs.length})',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: _viewMode == 'all_logs' ? AppTheme.primaryColor : AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // HEADER BAGIAN DAFTAR
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Daftar Aktivitas Siswa (${_logs.length})',
+                    _viewMode == 'students'
+                        ? 'Daftar Nama Siswa (${studentsList.length})'
+                        : 'Riwayat Semua Aktivitas (${_logs.length})',
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                   ),
                   if (_logs.isNotEmpty)
@@ -470,7 +577,125 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ],
                   ),
                 )
+              else if (_viewMode == 'students')
+                // TAMPILAN PER SISWA: Klik untuk melihat riwayat aktivitas khusus siswa tersebut
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: studentsList.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final studentEntry = studentsList[index];
+                    final studentNis = studentEntry.key;
+                    final studentLogs = studentEntry.value;
+                    final studentName = studentLogs.first.studentName;
+
+                    final belajarCount = studentLogs.where((l) {
+                      final a = l.activityType.toLowerCase();
+                      return a.contains('belajar') || a.contains('tugas') || a.contains('buku');
+                    }).length;
+                    final sholatCount = studentLogs.where((l) => l.activityType.toLowerCase().contains('sholat')).length;
+                    final lainnyaCount = studentLogs.length - belajarCount - sholatCount;
+
+                    return Card(
+                      margin: EdgeInsets.zero,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => StudentDetailLogsScreen(
+                                nis: studentNis,
+                                studentName: studentName,
+                              ),
+                            ),
+                          ).then((_) => _loadData());
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 22,
+                                    backgroundColor: AppTheme.primaryLight,
+                                    child: Text(
+                                      studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: AppTheme.primaryDark,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          studentName,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: AppTheme.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'NIS: $studentNis • ${studentLogs.length} Aktivitas',
+                                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryLight,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Text(
+                                          'Lihat',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.primaryDark,
+                                          ),
+                                        ),
+                                        SizedBox(width: 2),
+                                        Icon(Icons.chevron_right_rounded, size: 16, color: AppTheme.primaryDark),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: [
+                                  _activityBadge('$belajarCount Belajar', AppTheme.secondaryColor, const Color(0xFFEFF6FF)),
+                                  _activityBadge('$sholatCount Sholat', AppTheme.accentGreen, const Color(0xFFECFDF5)),
+                                  if (lainnyaCount > 0)
+                                    _activityBadge('$lainnyaCount Lainnya', AppTheme.accentAmber, const Color(0xFFFFFBEB)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                )
               else
+                // TAMPILAN SEMUA LOG DETAIL
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -488,81 +713,94 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         : log.timestamp;
 
                     final isSholat = log.activityType.toLowerCase().contains('sholat');
-                    final isBelajar = log.activityType.toLowerCase().contains('belajar');
+                    final isBelajar = log.activityType.toLowerCase().contains('belajar') ||
+                        log.activityType.toLowerCase().contains('tugas');
 
                     return Card(
                       margin: EdgeInsets.zero,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: isSholat
-                                    ? const Color(0xFFECFDF5)
-                                    : (isBelajar ? const Color(0xFFEFF6FF) : const Color(0xFFFFFBEB)),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                isSholat
-                                    ? Icons.mosque_rounded
-                                    : (isBelajar ? Icons.menu_book_rounded : Icons.star_rounded),
-                                color: isSholat
-                                    ? AppTheme.accentGreen
-                                    : (isBelajar ? AppTheme.secondaryColor : AppTheme.accentAmber),
-                                size: 22,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => StudentDetailLogsScreen(
+                                nis: log.nis,
+                                studentName: log.studentName,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Nama Siswa (Sesuai Permintaan)
-                                  Text(
-                                    log.studentName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      color: AppTheme.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'NIS: ${log.nis} • Aktivitas: ${log.activityType}',
-                                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.access_time_rounded, size: 14, color: AppTheme.primaryColor),
-                                      const SizedBox(width: 4),
-                                      // Waktu Tersimpan
-                                      Text(
-                                        '$formattedDateTime WIB',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppTheme.primaryColor,
-                                        ),
+                          ).then((_) => _loadData());
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: isSholat
+                                      ? const Color(0xFFECFDF5)
+                                      : (isBelajar ? const Color(0xFFEFF6FF) : const Color(0xFFFFFBEB)),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  isSholat
+                                      ? Icons.mosque_rounded
+                                      : (isBelajar ? Icons.menu_book_rounded : Icons.star_rounded),
+                                  color: isSholat
+                                      ? AppTheme.accentGreen
+                                      : (isBelajar ? AppTheme.secondaryColor : AppTheme.accentAmber),
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      log.studentName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: AppTheme.textPrimary,
                                       ),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'NIS: ${log.nis} • Aktivitas: ${log.activityType}',
+                                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.access_time_rounded, size: 14, color: AppTheme.primaryColor),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '$formattedDateTime WIB',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.primaryColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, size: 20, color: AppTheme.errorColor),
-                              onPressed: () {
-                                if (log.id != null) {
-                                  _deleteSingleLog(log.id!, log.studentName);
-                                }
-                              },
-                              tooltip: 'Hapus log ini',
-                            ),
-                          ],
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded, size: 20, color: AppTheme.errorColor),
+                                onPressed: () {
+                                  if (log.id != null) {
+                                    _deleteSingleLog(log.id!, log.studentName);
+                                  }
+                                },
+                                tooltip: 'Hapus log ini',
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -630,6 +868,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         color: isSelected ? Colors.white : AppTheme.textPrimary,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 13,
+      ),
+    );
+  }
+
+  Widget _activityBadge(String label, Color textColor, Color bgColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: textColor,
+        ),
       ),
     );
   }
