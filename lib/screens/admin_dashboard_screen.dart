@@ -16,11 +16,12 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<ActivityLog> _logs = [];
+  List<ActivityLog> _allLogs = [];
   bool _isLoading = true;
   bool _isExporting = false;
 
   String _searchQuery = '';
-  String _selectedFilter = 'Semua'; // 'Semua', 'Belajar', 'Sholat'
+  String _selectedFilter = 'Semua'; // 'Semua', 'Belajar', 'Sholat', 'Lainnya'
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -38,6 +39,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
+    final all = await DatabaseHelper.instance.getAllActivities();
     final logs = await DatabaseHelper.instance.getAllActivities(
       searchQuery: _searchQuery,
       activityFilter: _selectedFilter == 'Semua' ? null : _selectedFilter,
@@ -45,6 +47,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     if (mounted) {
       setState(() {
+        _allLogs = all;
         _logs = logs;
         _isLoading = false;
       });
@@ -212,8 +215,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final totalBelajar = _logs.where((l) => l.activityType.toLowerCase().contains('belajar')).length;
-    final totalSholat = _logs.where((l) => l.activityType.toLowerCase().contains('sholat')).length;
+    final totalAll = _allLogs.length;
+    final totalBelajar = _allLogs.where((l) {
+      final a = l.activityType.toLowerCase();
+      return a.contains('belajar') || a.contains('tugas') || a.contains('buku');
+    }).length;
+    final totalSholat = _allLogs.where((l) => l.activityType.toLowerCase().contains('sholat')).length;
 
     return Scaffold(
       appBar: AppBar(
@@ -344,7 +351,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   Expanded(
                     child: _buildStatCard(
                       title: 'Total Log',
-                      value: '${_logs.length}',
+                      value: '$totalAll',
                       icon: Icons.list_alt_rounded,
                       color: AppTheme.secondaryColor,
                     ),
@@ -405,6 +412,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     _filterChip('Belajar'),
                     const SizedBox(width: 8),
                     _filterChip('Sholat'),
+                    const SizedBox(width: 8),
+                    _filterChip('Lainnya'),
                   ],
                 ),
               ),

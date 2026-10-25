@@ -277,8 +277,21 @@ class DatabaseHelper {
 
     if (activityFilter != null && activityFilter != 'Semua') {
       if (whereClause.isNotEmpty) whereClause += ' AND ';
-      whereClause += 'activity_type = ?';
-      whereArgs.add(activityFilter);
+      if (activityFilter == 'Belajar') {
+        whereClause += '(LOWER(activity_type) LIKE ? OR LOWER(activity_type) LIKE ?)';
+        whereArgs.add('%belajar%');
+        whereArgs.add('%tugas%');
+      } else if (activityFilter == 'Sholat') {
+        whereClause += 'LOWER(activity_type) LIKE ?';
+        whereArgs.add('%sholat%');
+      } else if (activityFilter == 'Lainnya') {
+        whereClause += '(LOWER(activity_type) NOT LIKE ? AND LOWER(activity_type) NOT LIKE ?)';
+        whereArgs.add('%belajar%');
+        whereArgs.add('%sholat%');
+      } else {
+        whereClause += 'LOWER(activity_type) LIKE ?';
+        whereArgs.add('%${activityFilter.toLowerCase()}%');
+      }
     }
 
     final res = await db.query(
