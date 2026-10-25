@@ -1,0 +1,70 @@
+name: Flutter CI/CD - Build & Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Memungkinkan trigger manual dari tab Actions di GitHub
+
+jobs:
+  build:
+    name: Build & Test Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout kode repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Java 17 (dibutuhkan untuk Gradle 8 & Android Build)
+      - name: Set up Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      # 3. Setup Flutter SDK
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:-:arch:-:hash:'
+
+      # 4. Ambil seluruh dependencies
+      - name: Install Dependencies
+        run: flutter pub get
+
+      # 5. Analisis kode (Code Quality / Linting)
+      - name: Analyze Project Code
+        run: flutter analyze
+
+      # 6. Jalankan automated tests (Unit & Functional Tests)
+      - name: Run Automated Tests
+        run: flutter test
+
+      # 7. Build Android APK Release (Universal APK)
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      # 8. Build Split APKs (untuk ukuran file lebih hemat per arsitektur)
+      - name: Build Split-per-ABI APKs
+        run: flutter build apk --release --split-per-abi
+
+      # 9. Upload Artifacts (APK Universal) agar bisa langsung diunduh dari GitHub
+      - name: Upload Universal APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smanda-activity-universal-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14
+
+      # 10. Upload Artifacts (Split APKs)
+      - name: Upload Split APKs Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smanda-activity-split-apks
+          path: build/app/outputs/flutter-apk/app-*-release.apk
+          retention-days: 14
