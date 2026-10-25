@@ -252,54 +252,126 @@ class DatabaseHelper {
 
   Future<List<ActivityLog>> getActivitiesForStudent(String nis) async {
     final db = await database;
-    final res = await db.query(
-      'activity_logs',
-      where: 'nis = ?',
-      whereArgs: [nis.trim()],
-      orderBy: 'timestamp DESC',
-    );
+    final res = await db.rawQuery('''
+      SELECT 
+        a.id, 
+        a.nis, 
+        a.student_name, 
+        COALESCE(s.class_name, '') as class_name, 
+        a.activity_type, 
+        a.timestamp, 
+        a.notes
+      FROM activity_logs a
+      LEFT JOIN master_students s ON a.nis = s.nis
+      WHERE a.nis = ?
+      ORDER BY a.timestamp DESC
+    ''', [nis.trim()]);
     return res.map((e) => ActivityLog.fromMap(e)).toList();
   }
 
   Future<List<ActivityLog>> getAllActivities({
     String? searchQuery,
     String? activityFilter,
+    String? classFilter, // 'Semua', '10', '11', '12'
   }) async {
     final db = await database;
-    String whereClause = '';
-    List<dynamic> whereArgs = [];
+    String sql = '''
+      SELECT 
+        a.id, 
+        a.nis, 
+        a.student_name, 
+        COALESCE(s.class_name, '') as class_name, 
+        a.activity_type, 
+        a.timestamp, 
+        a.notes
+      FROM activity_logs a
+      LEFT JOIN master_students s ON a.nis = s.nis
+    ''';
+
+    List<String> conditions = [];
+    List<dynamic> args = [];
 
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
-      whereClause += '(student_name LIKE ? OR nis LIKE ?)';
-      whereArgs.add('%${searchQuery.trim()}%');
-      whereArgs.add('%${searchQuery.trim()}%');
+      conditions.add('(a.student_name LIKE ? OR a.nis LIKE ? OR s.class_name LIKE ?)');
+      final q = '%${searchQuery.trim()}%';
+      args.addAll([q, q, q]);
     }
 
     if (activityFilter != null && activityFilter != 'Semua') {
-      if (whereClause.isNotEmpty) whereClause += ' AND ';
       if (activityFilter == 'Belajar') {
-        whereClause += '(LOWER(activity_type) LIKE ? OR LOWER(activity_type) LIKE ?)';
-        whereArgs.add('%belajar%');
-        whereArgs.add('%tugas%');
+        conditions.add('(LOWER(a.activity_type) LIKE ? OR LOWER(a.activity_type) LIKE ?)');
+        args.add('%belajar%');
+        args.add('%tugas%');
       } else if (activityFilter == 'Sholat') {
-        whereClause += 'LOWER(activity_type) LIKE ?';
-        whereArgs.add('%sholat%');
+        conditions.add('LOWER(a.activity_type) LIKE ?');
+        args.add('%sholat%');
       } else if (activityFilter == 'Lainnya') {
-        whereClause += '(LOWER(activity_type) NOT LIKE ? AND LOWER(activity_type) NOT LIKE ?)';
-        whereArgs.add('%belajar%');
-        whereArgs.add('%sholat%');
+        conditions.add('(LOWER(a.activity_type) NOT LIKE ? AND LOWER(a.activity_type) NOT LIKE ?)');
+        args.add('%belajar%');
+        args.add('%sholat%');
       } else {
-        whereClause += 'LOWER(activity_type) LIKE ?';
-        whereArgs.add('%${activityFilter.toLowerCase()}%');
+        conditions.add('LOWER(a.activity_type) LIKE ?');
+        args.add('%${activityFilter.toLowerCase()}%');
       }
     }
 
-    final res = await db.query(
-      'activity_logs',
-      where: whereClause.isEmpty ? null : whereClause,
-      whereArgs: whereArgs.isEmpty ? null : whereArgs,
-      orderBy: 'timestamp DESC',
-    );
+    if (classFilter != null && classFilter != 'Semua' && classFilter.isNotEmpty) {
+      if (classFilter == '10' || classFilter == 'Kelas 10') {
+        conditions.add('''
+          (
+            (
+              UPPER(s.class_name) LIKE 'X %' OR 
+              UPPER(s.class_name) LIKE 'X-%' OR 
+              UPPER(s.class_name) LIKE 'X.%' OR 
+              UPPER(s.class_name) LIKE '10%' OR 
+              UPPER(s.class_name) = 'X' OR 
+              UPPER(s.class_name) LIKE '%KELAS 10%' OR 
+              UPPER(s.class_name) LIKE '%KELAS X%'
+            )
+            AND UPPER(s.class_name) NOT LIKE 'XI%'
+            AND UPPER(s.class_name) NOT LIKE 'XII%'
+          )
+        ''');
+      } else if (classFilter == '11' || classFilter == 'Kelas 11') {
+        conditions.add('''
+          (
+            (
+              UPPER(s.class_name) LIKE 'XI %' OR 
+              UPPER(s.class_name) LIKE 'XI-%' OR 
+              UPPER(s.class_name) LIKE 'XI.%' OR 
+              UPPER(s.class_name) = 'XI' OR 
+              UPPER(s.class_name) LIKE '11%' OR 
+              UPPER(s.class_name) LIKE '%KELAS 11%' OR 
+              UPPER(s.class_name) LIKE '%KELAS XI%'
+            )
+            AND UPPER(s.class_name) NOT LIKE 'XII%'
+          )
+        ''');
+      } else if (classFilter == '12' || classFilter == 'Kelas 12') {
+        conditions.add('''
+          (
+            UPPER(s.class_name) LIKE 'XII %' OR 
+            UPPER(s.class_name) LIKE 'XII-%' OR 
+            UPPER(s.class_name) LIKE 'XII.%' OR 
+            UPPER(s.class_name) = 'XII' OR 
+            UPPER(s.class_name) LIKE '12%' OR 
+            UPPER(s.class_name) LIKE '%KELAS 12%' OR 
+            UPPER(s.class_name) LIKE '%KELAS XII%'
+          )
+        ''');
+      } else {
+        conditions.add('s.class_name LIKE ?');
+        args.add('%$classFilter%');
+      }
+    }
+
+    if (conditions.isNotEmpty) {
+      sql += ' WHERE ${conditions.join(' AND ')}';
+    }
+
+    sql += ' ORDER BY a.timestamp DESC';
+
+    final res = await db.rawQuery(sql, args);
     return res.map((e) => ActivityLog.fromMap(e)).toList();
   }
 

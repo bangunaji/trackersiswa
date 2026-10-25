@@ -23,6 +23,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   String _viewMode = 'students'; // 'students' (Per Siswa) or 'all_logs' (Semua Riwayat)
   String _searchQuery = '';
+  String _selectedClassFilter = 'Semua'; // 'Semua', 'Kelas 10', 'Kelas 11', 'Kelas 12'
   String _selectedFilter = 'Semua'; // 'Semua', 'Belajar', 'Sholat', 'Lainnya'
 
   final TextEditingController _searchController = TextEditingController();
@@ -45,6 +46,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final logs = await DatabaseHelper.instance.getAllActivities(
       searchQuery: _searchQuery,
       activityFilter: _selectedFilter == 'Semua' ? null : _selectedFilter,
+      classFilter: _selectedClassFilter == 'Semua' ? null : _selectedClassFilter,
     );
 
     if (mounted) {
@@ -344,7 +346,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               )
                             : const Icon(Icons.file_download_rounded, size: 20),
                         label: Text(
-                          _isExporting ? 'Mengekspor ke Excel...' : 'Ekspor ${_logs.length} Data ke Excel',
+                          _isExporting
+                              ? 'Mengekspor ke Excel...'
+                              : 'Ekspor ${_logs.length} Data${_selectedClassFilter != 'Semua' ? ' ($_selectedClassFilter)' : ''} ke Excel',
                           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                         ),
                       ),
@@ -409,9 +413,48 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       : null,
                 ),
               ),
+              const SizedBox(height: 14),
+
+              // Filter Tingkat Kelas (10, 11, 12)
+              Row(
+                children: const [
+                  Icon(Icons.filter_list_rounded, size: 16, color: AppTheme.textSecondary),
+                  SizedBox(width: 6),
+                  Text(
+                    'Filter Berdasarkan Kelas:',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _classFilterChip('Semua', 'Semua Kelas', Icons.school_rounded),
+                    const SizedBox(width: 8),
+                    _classFilterChip('Kelas 10', 'Kelas 10 (X)', Icons.looks_one_rounded),
+                    const SizedBox(width: 8),
+                    _classFilterChip('Kelas 11', 'Kelas 11 (XI)', Icons.looks_two_rounded),
+                    const SizedBox(width: 8),
+                    _classFilterChip('Kelas 12', 'Kelas 12 (XII)', Icons.looks_3_rounded),
+                  ],
+                ),
+              ),
               const SizedBox(height: 12),
 
               // Kategori Filter Chips
+              Row(
+                children: const [
+                  Icon(Icons.category_rounded, size: 16, color: AppTheme.textSecondary),
+                  SizedBox(width: 6),
+                  Text(
+                    'Kategori Aktivitas:',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -589,6 +632,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     final studentNis = studentEntry.key;
                     final studentLogs = studentEntry.value;
                     final studentName = studentLogs.first.studentName;
+                    final studentClass = studentLogs.first.className;
+                    final studentGradeLevel = studentLogs.first.gradeLevel;
 
                     final belajarCount = studentLogs.where((l) {
                       final a = l.activityType.toLowerCase();
@@ -607,6 +652,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               builder: (context) => StudentDetailLogsScreen(
                                 nis: studentNis,
                                 studentName: studentName,
+                                className: studentClass,
                               ),
                             ),
                           ).then((_) => _loadData());
@@ -636,15 +682,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          studentName,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                            color: AppTheme.textPrimary,
-                                          ),
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                studentName,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                  color: AppTheme.textPrimary,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (studentClass.isNotEmpty) ...[
+                                              const SizedBox(width: 8),
+                                              _gradeBadge(studentClass, studentGradeLevel),
+                                            ],
+                                          ],
                                         ),
-                                        const SizedBox(height: 2),
+                                        const SizedBox(height: 3),
                                         Text(
                                           'NIS: $studentNis • ${studentLogs.length} Aktivitas',
                                           style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
@@ -726,6 +783,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               builder: (context) => StudentDetailLogsScreen(
                                 nis: log.nis,
                                 studentName: log.studentName,
+                                className: log.className,
                               ),
                             ),
                           ).then((_) => _loadData());
@@ -759,13 +817,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      log.studentName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                        color: AppTheme.textPrimary,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            log.studentName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                              color: AppTheme.textPrimary,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (log.className.isNotEmpty) ...[
+                                          const SizedBox(width: 8),
+                                          _gradeBadge(log.className, log.gradeLevel),
+                                        ],
+                                      ],
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
@@ -881,6 +950,82 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
       child: Text(
         label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _classFilterChip(String filterValue, String label, IconData icon) {
+    final isSelected = _selectedClassFilter == filterValue;
+    Color activeColor;
+    if (filterValue == 'Kelas 10') {
+      activeColor = const Color(0xFF0F766E);
+    } else if (filterValue == 'Kelas 11') {
+      activeColor = const Color(0xFF1D4ED8);
+    } else if (filterValue == 'Kelas 12') {
+      activeColor = const Color(0xFF7E22CE);
+    } else {
+      activeColor = AppTheme.primaryColor;
+    }
+
+    return ChoiceChip(
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: isSelected ? Colors.white : activeColor,
+      ),
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() => _selectedClassFilter = filterValue);
+          _loadData();
+        }
+      },
+      selectedColor: activeColor,
+      backgroundColor: Colors.white,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : AppTheme.textPrimary,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        fontSize: 12,
+      ),
+    );
+  }
+
+  Widget _gradeBadge(String className, int gradeLevel) {
+    Color textColor;
+    Color bgColor;
+
+    switch (gradeLevel) {
+      case 10:
+        textColor = const Color(0xFF0F766E);
+        bgColor = const Color(0xFFCCFBF1);
+        break;
+      case 11:
+        textColor = const Color(0xFF1D4ED8);
+        bgColor = const Color(0xFFDBEAFE);
+        break;
+      case 12:
+        textColor = const Color(0xFF7E22CE);
+        bgColor = const Color(0xFFF3E8FF);
+        break;
+      default:
+        textColor = AppTheme.primaryDark;
+        bgColor = AppTheme.primaryLight;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        className,
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.bold,

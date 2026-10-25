@@ -47,6 +47,7 @@ class ExcelService {
         TextCellValue('Waktu & Tanggal'),
         TextCellValue('Nama Siswa'),
         TextCellValue('NIS'),
+        TextCellValue('Kelas'),
         TextCellValue('Jenis Aktivitas'),
         TextCellValue('Keterangan'),
       ]);
@@ -57,7 +58,7 @@ class ExcelService {
         horizontalAlign: HorizontalAlign.Center,
       );
 
-      for (int col = 0; col < 6; col++) {
+      for (int col = 0; col < 7; col++) {
         final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 4));
         cell.cellStyle = headerCellStyle;
       }
@@ -79,6 +80,7 @@ class ExcelService {
           TextCellValue(formattedTime),
           TextCellValue(log.studentName),
           TextCellValue(log.nis),
+          TextCellValue(log.className.isEmpty ? '-' : log.className),
           TextCellValue(log.activityType),
           TextCellValue(log.notes.isEmpty ? '-' : log.notes),
         ]);

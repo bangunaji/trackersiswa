@@ -8,11 +8,13 @@ import '../theme/app_theme.dart';
 class StudentDetailLogsScreen extends StatefulWidget {
   final String nis;
   final String studentName;
+  final String? className;
 
   const StudentDetailLogsScreen({
     super.key,
     required this.nis,
     required this.studentName,
+    this.className,
   });
 
   @override
@@ -24,16 +26,26 @@ class _StudentDetailLogsScreenState extends State<StudentDetailLogsScreen> {
   bool _isLoading = true;
   bool _isExporting = false;
   String _selectedFilter = 'Semua'; // 'Semua', 'Belajar', 'Sholat', 'Lainnya'
+  String _displayClassName = '';
 
   @override
   void initState() {
     super.initState();
+    _displayClassName = widget.className ?? '';
     _loadStudentLogs();
   }
 
   Future<void> _loadStudentLogs() async {
     setState(() => _isLoading = true);
     final logs = await DatabaseHelper.instance.getActivitiesForStudent(widget.nis);
+    if (_displayClassName.isEmpty) {
+      if (logs.isNotEmpty && logs.first.className.isNotEmpty) {
+        _displayClassName = logs.first.className;
+      } else {
+        final s = await DatabaseHelper.instance.getStudentByNis(widget.nis);
+        if (s != null) _displayClassName = s.className;
+      }
+    }
     if (mounted) {
       setState(() {
         _logs = logs;
@@ -217,14 +229,36 @@ class _StudentDetailLogsScreenState extends State<StudentDetailLogsScreen> {
                                     color: Colors.white,
                                   ),
                                 ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  'NIS: ${widget.nis}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 8,
+                                  children: [
+                                    Text(
+                                      'NIS: ${widget.nis}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    if (_displayClassName.isNotEmpty)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.25),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          _displayClassName,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ],
                             ),

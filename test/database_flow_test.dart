@@ -118,4 +118,49 @@ void main() {
     expect(excelPath, isNotNull);
     expect(excelPath!.endsWith('.xlsx'), true);
   });
+
+  test('Pemisahan dan Filter Data Siswa per Kelas (10, 11, 12)', () async {
+    final db = DatabaseHelper.instance;
+
+    // Siswa 2024004: Dewi Lestari - XI MIPA 1 (Kelas 11)
+    // Siswa 2024006: Anisa Rahma - XII MIPA 2 (Kelas 12)
+    await db.insertActivityLog(ActivityLog(
+      nis: '2024004',
+      studentName: 'Dewi Lestari',
+      activityType: 'Belajar Kimia',
+      timestamp: DateTime.now().toIso8601String(),
+    ));
+
+    await db.insertActivityLog(ActivityLog(
+      nis: '2024006',
+      studentName: 'Anisa Rahma',
+      activityType: 'Sholat Ashar',
+      timestamp: DateTime.now().toIso8601String(),
+    ));
+
+    // Test filter kelas 10
+    final logs10 = await db.getAllActivities(classFilter: 'Kelas 10');
+    expect(logs10.isNotEmpty, true);
+    expect(logs10.every((l) => l.gradeLevel == 10), true);
+
+    // Test filter kelas 11
+    final logs11 = await db.getAllActivities(classFilter: 'Kelas 11');
+    expect(logs11.isNotEmpty, true);
+    expect(logs11.every((l) => l.gradeLevel == 11), true);
+
+    // Test filter kelas 12
+    final logs12 = await db.getAllActivities(classFilter: 'Kelas 12');
+    expect(logs12.isNotEmpty, true);
+    expect(logs12.every((l) => l.gradeLevel == 12), true);
+
+    // Master students grade level test
+    final masterList = await db.getAllMasterStudents();
+    final count10 = masterList.where((s) => s.gradeLevel == 10).length;
+    final count11 = masterList.where((s) => s.gradeLevel == 11).length;
+    final count12 = masterList.where((s) => s.gradeLevel == 12).length;
+    expect(count10 > 0, true);
+    expect(count11 > 0, true);
+    expect(count12 > 0, true);
+  });
 }
+
