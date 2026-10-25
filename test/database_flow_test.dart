@@ -72,11 +72,46 @@ void main() {
       timestamp: DateTime.now().toIso8601String(),
     ));
 
-    // Ambil data log
+    // Catat aktivitas dengan nama spesifik seperti di aplikasi
+    await db.insertActivityLog(ActivityLog(
+      nis: '2024001',
+      studentName: 'Ahmad Fauzi',
+      activityType: 'Belajar Mandiri',
+      timestamp: DateTime.now().toIso8601String(),
+    ));
+
+    await db.insertActivityLog(ActivityLog(
+      nis: '2024001',
+      studentName: 'Ahmad Fauzi',
+      activityType: 'Sholat Berjamaah di Masjid',
+      timestamp: DateTime.now().toIso8601String(),
+    ));
+
+    await db.insertActivityLog(ActivityLog(
+      nis: '2024001',
+      studentName: 'Ahmad Fauzi',
+      activityType: 'Kegiatan Ekstrakurikuler',
+      timestamp: DateTime.now().toIso8601String(),
+    ));
+
+    // Uji Filter Belajar
+    final belajarLogs = await db.getAllActivities(activityFilter: 'Belajar');
+    expect(belajarLogs.isNotEmpty, true);
+    expect(belajarLogs.every((l) => l.activityType.toLowerCase().contains('belajar') || l.activityType.toLowerCase().contains('tugas')), true);
+
+    // Uji Filter Sholat
+    final sholatLogs = await db.getAllActivities(activityFilter: 'Sholat');
+    expect(sholatLogs.isNotEmpty, true);
+    expect(sholatLogs.every((l) => l.activityType.toLowerCase().contains('sholat')), true);
+
+    // Uji Filter Lainnya
+    final lainnyaLogs = await db.getAllActivities(activityFilter: 'Lainnya');
+    expect(lainnyaLogs.isNotEmpty, true);
+    expect(lainnyaLogs.every((l) => !l.activityType.toLowerCase().contains('belajar') && !l.activityType.toLowerCase().contains('sholat')), true);
+
+    // Ambil semua data log
     final logs = await db.getAllActivities();
     expect(logs.isNotEmpty, true);
-    expect(logs.any((l) => l.studentName == 'Ahmad Fauzi' && l.activityType == 'Belajar'), true);
-    expect(logs.any((l) => l.studentName == 'Ahmad Fauzi' && l.activityType.contains('Sholat')), true);
 
     // Verifikasi Pembuatan File Excel
     final excelPath = await ExcelService.exportActivityLogsToExcel(logs);
