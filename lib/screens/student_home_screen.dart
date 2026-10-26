@@ -361,11 +361,41 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     ),
                   ),
 
-                  // Tombol Logout di Kanan Atas
-                  IconButton(
-                    onPressed: _handleLogout,
-                    icon: const Icon(Icons.logout_rounded, color: AppTheme.textSecondary),
-                    tooltip: 'Keluar',
+                  // Logo Sekolah & Tombol Logout di Kanan Atas
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppTheme.primaryLight,
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/images/logo_smanda.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        onPressed: _handleLogout,
+                        icon: const Icon(Icons.logout_rounded, color: AppTheme.textSecondary),
+                        tooltip: 'Keluar',
+                      ),
+                    ],
                   ),
                 ],
               ),

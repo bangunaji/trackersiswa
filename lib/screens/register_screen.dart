@@ -222,15 +222,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        width: 48,
+                        height: 48,
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryColor,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.verified_user_rounded,
                           color: Colors.white,
-                          size: 28,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.25),
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/images/logo_smanda.png',
+                          fit: BoxFit.contain,
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -239,7 +251,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Validasi Database Siswa',
+                              'Validasi Siswa SMANDA',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
@@ -248,7 +260,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             SizedBox(height: 3),
                             Text(
-                              'Hanya siswa dengan NIS terdaftar di sistem sekolah yang dapat membuat akun.',
+                              'Hanya siswa terdaftar SMA Negeri 2 Metro yang dapat membuat akun.',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.textSecondary,

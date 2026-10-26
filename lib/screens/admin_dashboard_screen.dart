@@ -235,11 +235,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12.0, top: 6.0, bottom: 6.0, right: 2.0),
+          child: Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Image.asset(
+              'assets/images/logo_smanda.png',
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Panel Admin SMANDA', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text('Rekap & Ekspor Data Aktivitas Siswa', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+            Text('Panel Admin SMANDA', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            Text('SMA Negeri 2 Metro Lampung', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
           ],
         ),
         actions: [

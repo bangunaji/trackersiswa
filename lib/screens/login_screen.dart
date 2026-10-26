@@ -120,26 +120,31 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Logo / Header Icon
                   Center(
                     child: Container(
-                      padding: const EdgeInsets.all(20),
+                      width: 110,
+                      height: 110,
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryLight,
+                        color: Colors.white,
                         shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppTheme.primaryLight,
+                          width: 2.5,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.15),
+                            color: AppTheme.primaryColor.withValues(alpha: 0.18),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.school_rounded,
-                        size: 54,
-                        color: AppTheme.primaryColor,
+                      child: Image.asset(
+                        'assets/images/logo_smanda.png',
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
 
                   // Title App
                   const Center(
@@ -153,18 +158,31 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
+                  const Center(
+                    child: Text(
+                      'SMA Negeri 2 Metro Lampung',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   const Center(
                     child: Text(
                       'Pencatatan Aktivitas Belajar & Sholat Siswa',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         color: AppTheme.textSecondary,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
 
                   // Role Selector
                   Container(
