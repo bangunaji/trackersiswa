@@ -4,14 +4,12 @@ on:
   push:
     tags:
       - 'v*' # Trigger saat push tag seperti v1.0.0, v1.0.1
+  workflow_dispatch:
 
 jobs:
-  release:
-    name: Build & Publish Release
+  build-android:
+    name: Build Android APK & AAB
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -41,12 +39,74 @@ jobs:
       - name: Build App Bundle (AAB for Play Store)
         run: flutter build appbundle --release --android-skip-build-dependency-validation
 
-      - name: Create GitHub Release and Upload APK
+      - name: Upload Android Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-artifacts
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+          retention-days: 1
+
+  build-ios:
+    name: Build iOS IPA
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build iOS Application (Release, No Codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Package Runner.app into IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r smanda_app.ipa Payload
+          rm -rf Payload
+
+      - name: Upload iOS IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-artifacts
+          path: smanda_app.ipa
+          retention-days: 1
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release-artifacts
+          path: release-assets
+
+      - name: Download iOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-release-artifacts
+          path: release-assets
+
+      - name: Create GitHub Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
+            release-assets/app-release.apk
+            release-assets/app-release.aab
+            release-assets/smanda_app.ipa
           draft: false
           prerelease: false
           generate_release_notes: true

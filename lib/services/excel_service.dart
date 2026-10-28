@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:excel/excel.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
@@ -116,13 +117,13 @@ class ExcelService {
   }
 
   /// Membagikan file excel melalui sistem share OS (WhatsApp, Drive, Email, dll)
-  static Future<void> shareExcelFile(String filePath) async {
+  static Future<void> shareExcelFile(String filePath, {Rect? sharePositionOrigin}) async {
     final xFile = XFile(filePath, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    // ignore: deprecated_member_use
     await Share.shareXFiles(
       [xFile],
       text: 'Berikut adalah Rekap Aktivitas Siswa SMANDA (Excel).',
       subject: 'Rekap Aktivitas Siswa SMANDA',
+      sharePositionOrigin: sharePositionOrigin ?? const Rect.fromLTWH(0, 0, 100, 100),
     );
   }
 }

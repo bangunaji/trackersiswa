@@ -6,10 +6,21 @@ on:
   pull_request:
     branches: [ main, master ]
   workflow_dispatch: # Memungkinkan trigger manual dari tab Actions di GitHub
+    inputs:
+      target:
+        description: 'Pilih target build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - android
+          - ios
 
 jobs:
   build:
     name: Build & Test Android APK
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'android' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -68,3 +79,39 @@ jobs:
           name: smanda-activity-split-apks
           path: build/app/outputs/flutter-apk/app-*-release.apk
           retention-days: 14
+
+  build-ios:
+    name: Build iOS IPA (Unsigned / Sideloadable)
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'ios' }}
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build iOS Application (Release, No Codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Package Runner.app into IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r smanda_app.ipa Payload
+          rm -rf Payload
+
+      - name: Upload iOS IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smanda-activity-ios-ipa
+          path: smanda_app.ipa
+          retention-days: 14
+
